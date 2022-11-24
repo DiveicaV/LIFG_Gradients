@@ -1,0 +1,12 @@
+"","Anatomical Label","Cluster Size (mm3)","Max Z Value","X","Y","Z"
+"1","Frontal_Inf_Tri_L",26192,21.732704,-54,20,20
+"2","Frontal_Inf_Tri_L",5216,21.732704,-54,22,4
+"3","Supp_Motor_Area_L",23232,18.710487,-2,22,60
+"4","Parietal_Inf_L",32240,17.653229,-54,-44,48
+"5","Frontal_Inf_Tri_R",4320,14.127654,48,40,0
+"6","Frontal_Inf_Orb_R",1120,13.556326,56,30,-2
+"7","Frontal_Inf_Tri_R",1704,13.0255785,58,26,18
+"8","Cerebelum_Crus1_R",832,11.482612,14,-76,-30
+"9","Temporal_Inf_L",2424,9.261357,-44,-2,-44
+"10","Temporal_Inf_L",856,8.256217,-50,-6,-40
+"11","Fusiform_L",608,8.117151,-44,-40,-18

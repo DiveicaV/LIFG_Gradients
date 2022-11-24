@@ -1,0 +1,251 @@
+---
+title: "FunctionalDecoding"
+author: "Veronica Diveica"
+date: "14/09/2022"
+---
+
+This script creates wordclouds with the functional terms associated with the LIFG sub-regions of interest (dorsal, ventral, posterior, anterior) by summarizing the results that are consistent across the clusters extracted from the task-free and task-based gradients. 
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(ggwordcloud)
+
+
+# load decoding results macm
+macm_ventral <- read_csv('macm_gradient-0_cluster-0-20.csv')
+macm_ventral$Gradient <- "Dorsal-Ventral Gradient"
+macm_ventral$Cluster <- "Ventral"
+
+macm_dorsal <- read_csv('macm_gradient-0_cluster-80-100.csv')
+macm_dorsal$Gradient <- "Dorsal-Ventral Gradient"
+macm_dorsal$Cluster <- "Dorsal"
+
+macm_posterior <- read_csv('macm_gradient-1_cluster-0-20.csv')
+macm_posterior$Gradient <- "Anterior-Posterior Gradient"
+macm_posterior$Cluster <- "Posterior"
+
+macm_anterior <- read_csv('macm_gradient-1_cluster-80-100.csv')
+macm_anterior$Gradient <- "Anterior-Posterior Gradient"
+macm_anterior$Cluster <- "Anterior"
+
+# load decoding results rsfc
+rsfc_ventral <- read_csv('rsfc_gradient-1_cluster-0-20.csv')
+rsfc_ventral$Gradient <- "Dorsal-Ventral Gradient"
+rsfc_ventral$Cluster <- "Ventral"
+
+rsfc_dorsal <- read_csv('rsfc_gradient-1_cluster-80-100.csv')
+rsfc_dorsal$Gradient <- "Dorsal-Ventral Gradient"
+rsfc_dorsal$Cluster <- "Dorsal"
+
+rsfc_posterior <- read_csv('rsfc_gradient-0_cluster-0-20.csv')
+rsfc_posterior$Gradient <- "Anterior-Posterior Gradient"
+rsfc_posterior$Cluster <- "Posterior"
+
+rsfc_anterior <- read_csv('rsfc_gradient-0_cluster-80-100.csv')
+rsfc_anterior$Gradient <- "Anterior-Posterior Gradient"
+rsfc_anterior$Cluster <- "Anterior"
+
+# load term categories
+terms <- read_csv("characterized-ns-terms.csv") %>% # this file was provided by Julio A Peraza (see article for the citation) and contains classification of neurosynth terms into the following categories: functional, anatomical, clinical, non-specific.
+  filter(Classification == "Functional" & Functional >.8) # keep only the terms that were classified as functional by at least 80% of raters. 
+
+# excluded terms
+exclude <-c("congruent", "decision", "decision task", "judgment","judgment task", "naturalistic", # exclude vague terms
+             "resting", "resting state", "reaction time", "response time", "performance", "encoding retrieval", 
+             "cognitive", "cognitive processes", "cognitive performance", "reasoning", "matching task")
+`%notin%` <- Negate(`%in%`)
+
+# organize & clean data
+macm_data <- rbind(macm_ventral, macm_dorsal, macm_posterior, macm_anterior) %>%
+  sapply(gsub, pattern="neuroquery6308_combined_tfidf__", replacement="") %>% 
+  as.data.frame() %>% 
+  mutate(across(2:7, as.numeric)) %>%
+  filter(Term %in% terms$FEATURE & Term %notin% exclude)
+
+rsfc_data <- rbind(rsfc_ventral, rsfc_dorsal, rsfc_posterior, rsfc_anterior) %>%
+  sapply(gsub, pattern="neuroquery6308_combined_tfidf__", replacement="") %>% 
+  as.data.frame() %>% 
+  mutate(across(2:7, as.numeric)) %>%
+  filter(Term %in% terms$FEATURE & Term %notin% exclude)
+
+```
+
+```{r consistency across task-free and task-based}
+
+# VENTRAL 
+macm_ventral_r <- macm_data %>% # identify the terms significantly associated with the ventral cluster in the reverse inference analysis
+  filter(Cluster == "Ventral" & pReverse < .05) %>% 
+  mutate(Z = scale(probReverse)) %>% 
+  select(Term, Z)
+
+macm_ventral_f <- macm_data %>% # identify the terms significantly associated with the ventral cluster in the forward inference analysis
+  filter(Cluster == "Ventral" & pForward < .05) %>%
+  mutate(Z = scale(likelihoodForward)) %>%  
+  select(Term, Z)
+
+macm_ventral <- rbind(macm_ventral_r, macm_ventral_f) %>% group_by(Term) %>% top_n(1, Z) # combine all functional terms associated with the ventral cluster, irrespective of type of decoding analysis
+
+rsfc_ventral_r <- rsfc_data %>% 
+  filter(Cluster == "Ventral" & pReverse < .05) %>% 
+  mutate(Z = scale(probReverse)) %>% 
+  select(Term, Z)
+
+rsfc_ventral_f <- rsfc_data %>%
+  filter(Cluster == "Ventral" & pForward < .05) %>%
+  mutate(Z = scale(likelihoodForward)) %>%  
+  select(Term, Z)
+
+rsfc_ventral <- rbind(rsfc_ventral_r, rsfc_ventral_f) %>% group_by(Term) %>% top_n(1, Z) # %>% mutate(Z = Z+1.2)
+
+ventral <- inner_join(rsfc_ventral, macm_ventral, by = "Term") %>% pivot_longer(2:3, names_to = "source", values_to = "Z") %>% group_by(Term) %>% top_n(1, Z) # identify the functional terms associated with the ventral IFG according to both the cluster defined based on the task-free gradient as well as the one based on the task-based coactivation gradient. 
+
+# DORSAL
+macm_dorsal_r <- macm_data %>% 
+  filter(Cluster == "Dorsal" & pReverse < .05) %>% 
+  mutate(Z = scale(probReverse)) %>% 
+  select(Term, Z)
+
+macm_dorsal_f <- macm_data %>%
+  filter(Cluster == "Dorsal" & pForward < .05) %>%
+  mutate(Z = scale(likelihoodForward)) %>%  
+  select(Term, Z)
+
+macm_dorsal <- rbind(macm_dorsal_r, macm_dorsal_f) %>% group_by(Term) %>% top_n(1, Z) # %>% mutate(Z = Z+1.2)
+
+rsfc_dorsal_r <- rsfc_data %>% 
+  filter(Cluster == "Dorsal" & pReverse < .05) %>% 
+  mutate(Z = scale(probReverse)) %>% 
+  select(Term, Z)
+
+rsfc_dorsal_f <- rsfc_data %>%
+  filter(Cluster == "Dorsal" & pForward < .05) %>%
+  mutate(Z = scale(likelihoodForward)) %>%  
+  select(Term, Z)
+
+rsfc_dorsal <- rbind(rsfc_dorsal_r, rsfc_dorsal_f) %>% group_by(Term) %>% top_n(1, Z) # %>% mutate(Z = Z+1.2)
+
+dorsal <- inner_join(rsfc_dorsal, macm_dorsal, by = "Term") %>% pivot_longer(2:3, names_to = "source", values_to = "Z") %>% group_by(Term) %>% top_n(1, Z)
+
+# ANTERIOR
+macm_anterior_r <- macm_data %>% 
+  filter(Cluster == "Anterior" & pReverse < .05) %>% 
+  mutate(Z = scale(probReverse)) %>% 
+  select(Term, Z)
+
+macm_anterior_f <- macm_data %>%
+  filter(Cluster == "Anterior" & pForward < .05) %>%
+  mutate(Z = scale(likelihoodForward)) %>%  
+  select(Term, Z)
+
+macm_anterior <- rbind(macm_anterior_r, macm_anterior_f) %>% group_by(Term) %>% top_n(1, Z) # %>% mutate(Z = Z+1.2)
+
+rsfc_anterior_r <- rsfc_data %>% 
+  filter(Cluster == "Anterior" & pReverse < .05) %>% 
+  mutate(Z = scale(probReverse)) %>% 
+  select(Term, Z)
+
+rsfc_anterior_f <- rsfc_data %>%
+  filter(Cluster == "Anterior" & pForward < .05) %>%
+  mutate(Z = scale(likelihoodForward)) %>%  
+  select(Term, Z)
+
+rsfc_anterior <- rbind(rsfc_anterior_r, rsfc_anterior_f) %>% group_by(Term) %>% top_n(1, Z) # %>% mutate(Z = Z+1.2)
+
+anterior <- inner_join(rsfc_anterior, macm_anterior, by = "Term") %>% pivot_longer(2:3, names_to = "source", values_to = "Z") %>% group_by(Term) %>% top_n(1, Z)
+
+
+# POSTERIOR
+macm_posterior_r <- macm_data %>% 
+  filter(Cluster == "Posterior" & pReverse < .05) %>% 
+  mutate(Z = scale(probReverse)) %>% 
+  select(Term, Z)
+
+macm_posterior_f <- macm_data %>%
+  filter(Cluster == "Posterior" & pForward < .05) %>%
+  mutate(Z = scale(likelihoodForward)) %>%  
+  select(Term, Z)
+
+macm_posterior <- rbind(macm_posterior_r, macm_posterior_f) %>% group_by(Term) %>% top_n(1, Z) # %>% mutate(Z = Z+1.2)
+
+rsfc_posterior_r <- rsfc_data %>% 
+  filter(Cluster == "Posterior" & pReverse < .05) %>% 
+  mutate(Z = scale(probReverse)) %>% 
+  select(Term, Z)
+
+rsfc_posterior_f <- rsfc_data %>%
+  filter(Cluster == "Posterior" & pForward < .05) %>%
+  mutate(Z = scale(likelihoodForward)) %>%  
+  select(Term, Z)
+
+rsfc_posterior <- rbind(rsfc_posterior_r, rsfc_posterior_f) %>% group_by(Term) %>% top_n(1, Z) # %>% mutate(Z = Z+1.2)
+
+posterior <- inner_join(rsfc_posterior, macm_posterior, by = "Term") %>% pivot_longer(2:3, names_to = "source", values_to = "Z") %>% group_by(Term) %>% top_n(1, Z)
+
+
+```
+
+```{r compare clusters}
+
+# Identify terms associated with all four IFG sub-regions
+overlap <- inner_join(dorsal, ventral, by = "Term")
+overlap <- inner_join(overlap, anterior, by = "Term")
+overlap <- inner_join(overlap, posterior, by = "Term") 
+overlap <- overlap %>% mutate(Z = (Z.x + Z.y + Z.x.x + Z.y.y)/4, Z = (Z + 0.37)) %>% select(Term, Z)
+
+# visualize
+p1<- ggplot(overlap, aes(label = Term, size = Z)) +
+    geom_text_wordcloud_area(shape = "square", color = "gray45") +  
+  scale_size_area(max_size = 10) +
+  theme_void()
+p1
+ggsave("wordclouds/Overlap.png", height = 10, width = 10) 
+  
+  
+# DORSAL VS VENTRAL
+
+p2 <- ventral %>% 
+  filter(Term %notin% dorsal$Term & Term %notin% overlap$Term) %>% 
+  mutate(Z = Z + 2) %>%
+  ggplot(aes(label = Term, size = Z)) +
+    geom_text_wordcloud_area(shape = "square", color = "darkorange2") +  
+  scale_size_area(max_size = 10) +
+  theme_void()
+p2
+ggsave("wordclouds/Ventral-dorsal.png", height = 4, width = 10) 
+
+
+p3 <- dorsal %>% 
+  filter(Term %notin% ventral$Term & Term %notin% overlap$Term) %>% 
+  mutate(Z = Z + 2.9) %>% 
+  ggplot(aes(label = Term, size = Z)) +
+    geom_text_wordcloud_area(shape = "square", color = "indianred2") +  
+  scale_size_area(max_size = 10) +
+  theme_void()
+p3
+ggsave("wordclouds/Dorsal-ventral.png", height = 4, width = 17) 
+
+
+# ANTERIOR VS POSTERIOR
+p4 <- anterior %>% 
+  filter(Term %notin% posterior$Term) %>% 
+  mutate(Z = Z + 2) %>%
+  ggplot(aes(label = Term, size = Z)) +
+    geom_text_wordcloud_area(shape = "square", color = "deepskyblue3") +  
+  scale_size_area(max_size = 10) +
+  theme_void()
+p4
+ggsave("wordclouds/Anterior-posterior.png", height = 10, width = 5) 
+
+
+p5 <- posterior %>% 
+  filter(Term %notin% anterior$Term) %>% 
+  mutate(Z = Z + 3) %>% 
+  ggplot(aes(label = Term, size = Z)) +
+    geom_text_wordcloud_area(shape = "square", color =  "#2AA27A") +  
+  scale_size_area(max_size = 10) +
+  theme_void()
+p5
+ggsave("wordclouds/Posterior-anterior.png", height = 10, width = 5) 
+
+```
+

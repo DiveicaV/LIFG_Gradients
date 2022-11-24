@@ -1,0 +1,9 @@
+,network,%overlap,cluster
+0,Visual,0,sbfc_gradient-0_cluster-80-100>gradient-0_cluster-0-20
+1,Somatomotor,15,sbfc_gradient-0_cluster-80-100>gradient-0_cluster-0-20
+2,Dorsal_Attention,26,sbfc_gradient-0_cluster-80-100>gradient-0_cluster-0-20
+3,Ventral_Attention,15,sbfc_gradient-0_cluster-80-100>gradient-0_cluster-0-20
+4,Limbic,0,sbfc_gradient-0_cluster-80-100>gradient-0_cluster-0-20
+5,Frotoparietal,27,sbfc_gradient-0_cluster-80-100>gradient-0_cluster-0-20
+6,Default,8,sbfc_gradient-0_cluster-80-100>gradient-0_cluster-0-20
+7,Semantic,12,sbfc_gradient-0_cluster-80-100>gradient-0_cluster-0-20

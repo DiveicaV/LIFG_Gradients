@@ -1,0 +1,42 @@
+---
+title: "pTFCE"
+output: word_document
+https://github.com/spisakt/pTFCE/wiki/3.-R-package 
+
+---
+
+```{r setup}
+
+# library(devtools)
+# install_github("spisakt/pTFCE")
+library(pTFCE)
+library(oro.nifti)
+```
+
+
+```{r correct}
+mask <- readNIfTI("data/mni152_brain_mask.nii.gz")
+
+file_paths <- Sys.glob(file.path( "*", "*z_score.nii.gz"))
+for (file_path in file_paths){
+  Z <- readNIfTI(file_path)
+  name <- unlist(strsplit(file_path, '/'))[1]
+  pTFCE=ptfce(Z, mask)
+  threshold = round(pTFCE$fwer0.05.Z, digits=6)
+  filename = paste0(name, "/pTFCE-z-score-map_FWER-0.05-threshold-", threshold)
+  writeNIfTI(pTFCE$Z, filename)
+}
+
+
+file_paths <- Sys.glob(file.path( "*", "*z_score_neg.nii.gz"))
+for (file_path in file_paths){
+  Z <- readNIfTI(file_path)
+  name <- unlist(strsplit(file_path, '/'))[1]
+  pTFCE=ptfce(Z, mask)
+  threshold = round(pTFCE$fwer0.05.Z, digits=6)
+  filename = paste0(name, "/pTFCE-z-score-neg-map_FWER-0.05-threshold-", threshold)
+  writeNIfTI(pTFCE$Z, filename)
+}
+
+```
+

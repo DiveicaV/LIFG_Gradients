@@ -1,0 +1,135 @@
+---
+title: "FunctionalDecoding - ROI4 MACM results"
+author: "Veronica Diveica"
+date: "01/03/2022"
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(cowplot)
+library(ggprism)
+#library(forcats)
+#library(ggwordcloud)
+
+# load decoding results
+g0_cluster_0_20 <- read_csv('gradient-0_cluster-0-20.csv')
+g0_cluster_0_20$Gradient <- "Dorsal-Ventral Gradient"
+g0_cluster_0_20$Cluster <- "Ventral"
+
+g0_cluster_80_100 <- read_csv('gradient-0_cluster-80-100.csv')
+g0_cluster_80_100$Gradient <- "Dorsal-Ventral Gradient"
+g0_cluster_80_100$Cluster <- "Dorsal"
+
+g1_cluster_0_20 <- read_csv('gradient-1_cluster-0-20.csv')
+g1_cluster_0_20$Gradient <- "Anterior-Posterior Gradient"
+g1_cluster_0_20$Cluster <- "Posterior"
+
+g1_cluster_80_100 <- read_csv('gradient-1_cluster-80-100.csv')
+g1_cluster_80_100$Gradient <- "Anterior-Posterior Gradient"
+g1_cluster_80_100$Cluster <- "Anterior"
+
+# load term categories
+terms <- read_csv("characterized-ns-terms.csv") %>% filter(Classification == "Functional" & Functional >.8)
+
+data <- rbind(g0_cluster_0_20, g0_cluster_80_100, g1_cluster_0_20, g1_cluster_80_100) %>%
+  sapply(gsub, pattern="neuroquery6308_combined_tfidf__", replacement="") %>% 
+  as.data.frame() %>% 
+  mutate(across(2:7, as.numeric)) %>%
+  filter(Term %in% terms$FEATURE)
+
+
+```
+
+```{r reverse}
+
+# prep data
+dat <- data %>% 
+  filter(pReverse < .05) %>% 
+  select(Term, probReverse, Cluster, Gradient) 
+
+
+r1 <- ggplot(dat, aes(x=reorder(Term, probReverse), y=Cluster, fill = probReverse)) +
+    geom_tile(size=5) +
+    coord_flip() +
+    theme_light() +
+    theme(axis.text.x = element_text(angle = 20, vjust = +0.7), axis.title = element_blank(), plot.title=element_text(face = "bold"), plot.title.position = "plot", text = element_text(size = 12), legend.position = "bottom", strip.text = element_text(colour = "black", face = "bold"), axis.text.y = element_text(color = "black", face = "bold")) +
+    scale_fill_gradient(low = "deepskyblue3", high = "indianred2", breaks=c(0.001, 0.002)) + # low = "#F9C929", high = "#9F025E" 0.002
+    facet_grid(cols = vars(Gradient), scales = "free_x") +
+  ggtitle("A. Reverse Inference Posterior Probability")
+
+ggsave("probReverse_all_terms.png", width = 5.5, height = 10)
+
+exclude <- c("cognitive", "cognitive processes", "performance", "resting", "resting state", "response time", "reaction time", "judgment","judgment task", "task demands", "naturalistic", "execution", "decision", "read", "linguistic", "memory task", "hearing", "semantic knowledge", "autobiographical memory", "semantic memory", "recognition task", "cognitive performance", "decision task", "executive control", "verbal working", "sentence comprehension", "encoding retrieval", "retrieved" )
+
+`%notin%` <- Negate(`%in%`)
+r2<- dat %>% filter(Term %notin% exclude) %>%
+  ggplot(aes(x=reorder(Term, probReverse), y=Cluster, fill = probReverse)) +
+    geom_tile(size=5) +
+    coord_flip() +
+    scale_fill_gradient(low = "deepskyblue3", high = "indianred2", breaks=c(0.0001, 0.0019)) + # low = "#F9C929", high = "#9F025E"
+    facet_grid(cols = vars(Gradient), scales = "free_x")+
+    theme_prism(base_size = 12) + 
+    theme(axis.title = element_blank(), plot.title.position = "plot", legend.position = "bottom",
+          panel.grid = element_line(color = "grey87", size = 0.5), strip.text = element_blank(), 
+          axis.line = element_line(colour = "grey87", size = 1), 
+          axis.ticks = element_line(colour = "grey87", size = 0.5)) +
+  ggtitle("A. Reverse Inference Posterior Probability")
+
+r2
+ggsave("probReverse_selected_terms.png", width = 6, height = 10)
+
+```
+
+```{r forward}
+
+# prep data
+dat <- data %>% 
+  filter(pForward < .05) %>% 
+  select(Term, likelihoodForward, Cluster, Gradient) 
+
+
+f1 <- ggplot(dat, aes(x=reorder(Term, likelihoodForward), y=Cluster, fill = likelihoodForward)) +
+    geom_tile(size=5) +
+    coord_flip() +
+    theme_light() +
+    theme(axis.text.x = element_text(angle = 20, vjust = +0.7), axis.title = element_blank(), plot.title=element_text(face = "bold"), plot.title.position = "plot", text = element_text(size = 12), legend.position = "bottom", strip.text = element_text(colour = "black", face = "bold"), axis.text.y = element_text(color = "black", face = "bold")) +
+    scale_fill_gradient(low = "deepskyblue3", high = "indianred2", breaks=c(1.2, 2)) + # low = "#F9C929", high = "#9F025E"
+    facet_grid(cols = vars(Gradient),scales = "free_x") +
+  ggtitle("B. Forward Inference Likelihood")
+
+#ggsave("likelihoodForward_all_terms.png", width = 5.5, height = 10)
+
+exclude <- c("reaction time", "task demands", "linguistic", "memory", "hearing", "language", "auditory", "executive")
+
+`%notin%` <- Negate(`%in%`)
+f2 <- dat %>% filter(Term %notin% exclude) %>%
+  ggplot(aes(x=reorder(Term, likelihoodForward), y=Cluster, fill = likelihoodForward)) +
+    geom_tile(size=5) +
+    coord_flip() +
+    scale_fill_gradient(low = "deepskyblue3", high = "indianred2", breaks=c(1.2, 2)) + # low = "#F9C929", high = "#9F025E"
+    facet_grid(cols = vars(Gradient),scales = "free_x") +
+    theme_prism(base_size = 12) + 
+    theme(axis.title = element_blank(), plot.title.position = "plot", legend.position = "bottom",
+          panel.grid = element_line(color = "grey87", size = 0.5), strip.text = element_blank(), 
+          axis.line = element_line(colour = "grey87", size = 1), 
+          axis.ticks = element_line(colour = "grey87", size = 0.5)) +
+    ggtitle("B. Forward Inference Likelihood")
+
+ggsave("likelihoodForward_selected_terms.png", width = 6, height = 10)
+
+```
+
+```{r combine plots}
+
+
+fig1 <- plot_grid(r1, f1, ncol = 2, align = "hv")
+fig1
+#ggsave("Functional_decoding_all_terms.png", height = 13, width = 11.5)
+
+fig2 <- plot_grid(r2, f2, ncol = 2, align = "hv")
+fig2
+ggsave("Functional_decoding_selected_terms.png", height = 12, width = 11.5)
+
+
+```
+

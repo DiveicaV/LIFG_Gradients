@@ -1,0 +1,321 @@
+---
+title: "visualize"
+author: "Veronica Diveica"
+
+
+This script generates figures to illustrate 
+- network overlaps 
+- % of varience explained by the individual gradients
+- participant-level gradation metric
+
+---
+
+```{r setup}
+library(tidyverse)
+library(ggradar)
+library(cowplot)
+```
+
+```{r helper functions for overlaps}
+
+prepare_data <- function(data) {
+  data <- data %>%
+  select(-...1) %>%
+  mutate(network = case_when(network == "1_binary.nii" ~ "Visual", 
+                             network == "2_binary.nii" ~ "SMN", 
+                             network == "3_binary.nii" ~ "DAN",
+                             network == "4_binary.nii" ~ "VAN", 
+                             network == "5_binary.nii" ~ "Limbic",
+                             network == "6_binary.nii" ~ "FPN",
+                             network == "7_binary.nii" ~ "DN",
+                             network == "clustercorr_vatl_binary.nii" ~ "SN")) %>%
+  rename(group = "cluster")  
+  return(data)
+}
+
+generate_fig <- function(data, cluster1, cluster2, colours) {
+
+fig <- data %>% 
+  filter(group == cluster1 | group == cluster2) %>%
+  pivot_wider(names_from = "network", values_from = "%overlap") %>%
+  subset(select=c("group", "Visual", "SMN", "VAN", "DAN", "FPN", "DN", "SN", "Limbic")) %>%
+  ggradar(grid.min = 0, grid.mid = 35, grid.max = 65, values.radar = c("0%", "35%", "65%"),
+          group.colours = colours, fill = TRUE, 
+          gridline.mid.colour = "grey",background.circle.colour = "white",
+          grid.label.size = 8, axis.label.size = 10, axis.label.offset = 1.2, 
+          group.line.width = 2.5, group.point.size = 4, 
+          plot.extent.x.sf = 1.15, plot.legend = FALSE) 
+return(fig)
+
+}
+
+```
+
+
+```{r rsfc gradients sbfc}
+
+# CONTRASTS
+
+data <- read_csv("rsfc_gradients/gradient_explore/sbfc/sbfc_contrasts_network_overlap.csv")
+data <- prepare_data(data)
+
+p1 <- generate_fig(data, 
+                   "gradient-0_cluster-80-100>gradient-0_cluster-0-20",
+                   "gradient-0_cluster-0-20>gradient-0_cluster-80-100", 
+                   c("#2AA27A", "deepskyblue3"))
+
+p2 <- generate_fig(data, 
+                   "gradient-1_cluster-80-100>gradient-1_cluster-0-20",
+                   "gradient-1_cluster-0-20>gradient-1_cluster-80-100", 
+                   c("darkorange2", "indianred2"))
+
+
+fig <- plot_grid(p1, p2, nrow = 2,  ncol = 1, axis = "t", align = "hv")
+fig
+
+ggsave("figs/rsfc_gradient_sbfc_contrasts.png", scale = 2) 
+
+# CONJUNCTION
+
+p1 <- generate_fig(data, 
+                   "gradient-0_cluster-0-20_conj_gradient-0_cluster-80-100",
+                   "none", 
+                   "grey54")
+
+p2 <- generate_fig(data, 
+                   "gradient-1_cluster-0-20_conj_gradient-1_cluster-80-100",
+                   "none", 
+                   "grey54")
+
+
+fig <- plot_grid(p1, p2, nrow = 2,  ncol = 1, axis = "t", align = "hv")
+fig
+
+ggsave("figs/rsfc_gradient_sbfc_conjunction.png", scale = 2) 
+
+
+```
+```{r meta gradients macm}
+
+# CONTRASTS
+
+data <- read_csv("meta-analytic_gradients/gradient_explore/macms/Contrasts_macms_network_overlap.csv")
+data <- prepare_data(data)
+
+p1 <- generate_fig(data, 
+                   "gradient-0_cluster-80-100>gradient-0_cluster-0-20",
+                   "gradient-0_cluster-0-20>gradient-0_cluster-80-100", 
+                   c("darkorange2", "indianred2"))
+
+p2 <- generate_fig(data, 
+                   "gradient-1_cluster-80-100>gradient-1_cluster-0-20",
+                   "gradient-1_cluster-0-20>gradient-1_cluster-80-100", 
+                   c("#2AA27A", "deepskyblue3"))
+
+
+fig <- plot_grid(p2, p1, nrow = 2,  ncol = 1, axis = "t", align = "hv")
+fig
+
+ggsave("figs/meta_gradient_macm_contrasts.png", scale = 2) 
+
+# CONJUNCTION
+
+p1 <- generate_fig(data, 
+                   "gradient-0_cluster-0-20_conj_gradient-0_cluster-80-100",
+                   "none", 
+                   "grey54")
+
+p2 <- generate_fig(data, 
+                   "gradient-1_cluster-0-20_conj_gradient-1_cluster-80-100",
+                   "none", 
+                   "grey54")
+
+
+fig <- plot_grid(p2, p1, nrow = 2,  ncol = 1, axis = "t", align = "hv")
+fig
+
+ggsave("figs/meta_gradient_macm_conjunction.png", scale = 2) 
+
+
+```
+
+```{r meta gradients not masked}
+
+# CONTRASTS
+
+data <- read_csv("meta-analytic_gradients/gradient_explore/macms/Contrasts_macms_network_overlap_notmasked.csv")
+data <- prepare_data(data)
+
+p1 <- generate_fig(data, 
+                   "gradient-0_cluster-80-100>gradient-0_cluster-0-20",
+                   "gradient-0_cluster-0-20>gradient-0_cluster-80-100", 
+                   c("darkorange2", "indianred2"))
+
+p2 <- generate_fig(data, 
+                   "gradient-1_cluster-80-100>gradient-1_cluster-0-20",
+                   "gradient-1_cluster-0-20>gradient-1_cluster-80-100", 
+                   c("#2AA27A", "deepskyblue3"))
+
+
+fig <- plot_grid(p2, p1, nrow = 2,  ncol = 1, axis = "t", align = "hv")
+fig
+
+ggsave("figs/meta_gradient_macm_contrasts_notmasked.png", scale = 2) 
+
+
+```
+
+
+```{r rsfc gradients macm}
+
+# Gradient 0
+
+data <- read_csv("rsfc_gradients/gradient_explore/macms/Contrast_macms_network_overlap.csv")
+data <- prepare_data(data)
+
+p1 <- generate_fig(data, 
+                   "MACM_gradient-0_cluster-80-100>gradient-0_cluster-0-20",
+                   "MACM_gradient-0_cluster-0-20>gradient-0_cluster-80-100", 
+                   c("#2AA27A", "deepskyblue3"))
+
+p2 <- generate_fig(data, 
+                   "MACM_gradient-0_cluster-0-20_conj_gradient-0_cluster-80-100",
+                   "none", 
+                   "grey54")
+
+
+fig <- plot_grid(p1, p2, nrow = 2,  ncol = 1, axis = "t", align = "hv")
+fig
+
+ggsave("figs/rsfc_gradient_macm_gradient0.png", scale = 2) 
+
+# Gradient 1
+
+p1 <- generate_fig(data, 
+                   "MACM_gradient-1_cluster-80-100>gradient-1_cluster-0-20",
+                   "MACM_gradient-1_cluster-0-20>gradient-1_cluster-80-100", 
+                   c("darkorange2", "indianred2"))
+
+p2 <- generate_fig(data, 
+                   "MACM_gradient-1_cluster-0-20_conj_gradient-1_cluster-80-100",
+                   "none", 
+                   "grey54")
+
+
+fig <- plot_grid(p1, p2, nrow = 2,  ncol = 1, axis = "t", align = "hv")
+fig
+
+ggsave("figs/rsfc_gradient_macm_gradient1.png", scale = 2) 
+
+
+```
+
+
+```{r meta gradients sbfc}
+
+# Gradient 0
+
+data <- read_csv("meta-analytic_gradients/gradient_explore/sbfc/sbfc_contrasts_network_overlap.csv")
+data <- prepare_data(data)
+
+p1 <- generate_fig(data, 
+                   "sbfc_gradient-0_cluster-80-100>gradient-0_cluster-0-20",
+                   "sbfc_gradient-0_cluster-0-20>gradient-0_cluster-80-100", 
+                   c("darkorange2", "indianred2"))
+
+
+
+p2 <- generate_fig(data, 
+                   "sbfc_gradient-0_cluster-0-20_conj_gradient-0_cluster-80-100",
+                   "none", 
+                   "grey54")
+
+
+fig <- plot_grid(p1, p2, nrow = 2,  ncol = 1, axis = "t", align = "hv")
+fig
+
+ggsave("figs/meta_gradient_sbfc_gradient0.png", scale = 2) 
+
+# Gradient 1
+
+p1 <- generate_fig(data, 
+                   "sbfc_gradient-1_cluster-80-100>gradient-1_cluster-0-20",
+                   "sbfc_gradient-1_cluster-0-20>gradient-1_cluster-80-100", 
+                   c("#2AA27A", "deepskyblue3"))
+
+
+
+p2 <- generate_fig(data, 
+                   "sbfc_gradient-1_cluster-0-20_conj_gradient-1_cluster-80-100",
+                   "none", 
+                   "grey54")
+
+
+fig <- plot_grid(p1, p2, nrow = 2,  ncol = 1, axis = "t", align = "hv")
+fig
+
+ggsave("figs/meta_gradient_sbfc_gradient1.png", scale = 2) 
+
+```
+
+```{r gradation metric}
+
+library(ggprism)
+library(gghalves)
+
+data <- read_csv("rsfc_gradients/laplacian/Participant_level_algebraic_connectivity.csv")
+
+
+fig <- ggplot(data, aes(x = 0, y = `Algebraic Connectivity`))+
+  geom_half_violin(side = "r", aes(alpha = 7), show.legend = FALSE, trim = FALSE, fill = "#2AA27A") +
+  geom_half_point(side = "l", shape = 1, size = 0.7) +
+  geom_boxplot(aes(x = -.2),  
+               outlier.alpha = 0, alpha = .7, width = .1, colour = "black", fill = "#2AA27A") +
+  scale_y_continuous(limits = c(0.7, 1)) + 
+  theme_prism(base_size = 16) +
+  theme(axis.title.x = element_blank(), axis.ticks = element_blank(), axis.text.x=element_blank())+
+  labs(title="Gradation Metric Values") 
+  
+ggsave('figs/Algebraic_connectivity.png', width = 5, height = 7) 
+
+```
+
+
+```{r variance explained}
+
+# prepare data
+dat1 <- read.delim("rsfc_gradients/lambdas.txt", header = FALSE, sep = "\t") 
+
+dat1 <- dat1 %>%
+  rowid_to_column(var = "Gradient Number") %>%
+  mutate(`Variance (%)` = V1/sum(dat1$V1)*100, 
+         `Data Type` = "Task-free Functional Connectivity")
+
+dat2 <- read.delim("meta-analytic_gradients/lambdas.txt", header = FALSE, sep = "\t") 
+
+dat2 <- dat2 %>%
+  rowid_to_column(var = "Gradient Number") %>%
+  mutate(`Variance (%)` = V1/sum(dat2$V1)*100, 
+         `Data Type` = "Task-based Co-activation")
+
+data <- rbind(dat1, dat2)
+rm(da1, dat2)
+
+# visualize
+fig <- ggplot(data, aes(x=`Gradient Number`, y = `Variance (%)`)) +
+  geom_line(size = 1.5)+
+  geom_point(size = 3)+
+  theme_prism()+
+  scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8,9,10))+
+  theme(panel.grid.major = element_line(colour = "grey96"),
+        strip.text = element_text(size = 14)) +
+  facet_wrap(vars(`Data Type`))
+  
+fig 
+
+  
+ggsave('figs/Gradient_variance.png', width = 8, height = 4) 
+
+```
+
+
